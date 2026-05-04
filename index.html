@@ -21,7 +21,7 @@
       href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=3" />
+    <link rel="stylesheet" href="./style.css?v=7" />
   </head>
   <body>
     <a class="skip-link" href="#appContent">К приложению</a>
@@ -68,15 +68,23 @@
         <div class="filter-card" aria-label="Фильтры расписания">
           <div class="search-wrap">
             <label for="searchInput">Поиск артиста</label>
-            <input id="searchInput" data-testid="input-search" type="search" placeholder="Например, Алиса или Lumen" />
+            <div class="search-row">
+              <input id="searchInput" data-testid="input-search" type="search" placeholder="Например, Алиса или Lumen" />
+              <button class="filter-toggle" id="filterToggle" type="button" aria-expanded="false" data-testid="button-toggle-filters">
+                Фильтры
+              </button>
+            </div>
+            <p class="result-summary" id="resultSummary">Показаны все выступления</p>
           </div>
-          <div class="filter-group">
-            <span>День</span>
-            <div class="scroll-chips" id="dayFilters" aria-label="Дни фестиваля"></div>
-          </div>
-          <div class="filter-group">
-            <span>Сцена</span>
-            <div class="scroll-chips" id="stageFilters" aria-label="Сцены фестиваля"></div>
+          <div class="filter-drawer" id="filterDrawer" hidden>
+            <div class="filter-group">
+              <span>День</span>
+              <div class="scroll-chips" id="dayFilters" aria-label="Дни фестиваля"></div>
+            </div>
+            <div class="filter-group">
+              <span>Сцена</span>
+              <div class="scroll-chips" id="stageFilters" aria-label="Сцены фестиваля"></div>
+            </div>
           </div>
         </div>
         <div class="day-groups" id="scheduleList"></div>
@@ -133,7 +141,7 @@
     </nav>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=3" defer></script>
+    <script src="./app.js?v=7" defer></script>
   <script data-pplx-inline-edit>
 (function () {
   if (window === window.top) return;

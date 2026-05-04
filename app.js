@@ -144,6 +144,7 @@ const state = {
   search: "",
   time: 19 * 60,
   favorites: new Set(),
+  filtersOpen: false,
 };
 
 const events = RAW_EVENTS.map(([day, stage, time, title], index) => {
@@ -253,7 +254,29 @@ function renderSchedule() {
   const filtered = getFilteredEvents();
   byId("statEvents").textContent = events.length;
   byId("statFavorites").textContent = state.favorites.size;
+  renderSearchState(filtered.length);
   renderEventGroups(list, filtered, "Ничего не найдено. Попробуй другой день, сцену или запрос.");
+}
+
+function renderSearchState(count) {
+  const query = state.search.trim();
+  document.body.classList.toggle("is-searching", Boolean(query));
+  const dayLabel = state.day === "all" ? "" : dayById(state.day).label;
+  const stageLabel = state.stage === "all" ? "" : stageById(state.stage).short;
+  const activeFilters = [dayLabel, stageLabel].filter(Boolean);
+  const filterText = activeFilters.length ? ` · ${activeFilters.join(", ")}` : "";
+  byId("resultSummary").textContent = query
+    ? `Найдено: ${count}${filterText}`
+    : count === events.length
+      ? "Показаны все выступления"
+      : `Показано: ${count}${filterText}`;
+
+  const toggle = byId("filterToggle");
+  const drawer = byId("filterDrawer");
+  toggle.textContent = activeFilters.length ? `Фильтры · ${activeFilters.length}` : "Фильтры";
+  toggle.classList.toggle("has-active", activeFilters.length > 0 || state.filtersOpen);
+  toggle.setAttribute("aria-expanded", String(state.filtersOpen));
+  drawer.hidden = !state.filtersOpen;
 }
 
 function renderEventGroups(list, filtered, emptyMessage) {
@@ -276,7 +299,7 @@ function renderEventGroups(list, filtered, emptyMessage) {
     block.innerHTML = `
       <div class="day-title">
         <h3>${day.label}</h3>
-        <span>${day.weekday} · ${dayEvents.length}</span>
+        <span>${day.weekday} · ${dayEvents.length} выступлений</span>
       </div>
     `;
     dayEvents.forEach((event) => block.appendChild(createEventCard(event)));
@@ -416,6 +439,12 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  if (event.target.closest("#filterToggle")) {
+    state.filtersOpen = !state.filtersOpen;
+    renderAll();
+    return;
+  }
+
   if (event.target.closest("#clearButton")) {
     state.favorites.clear();
     updateUrl();
@@ -432,6 +461,7 @@ document.addEventListener("click", async (event) => {
 
 byId("searchInput").addEventListener("input", (event) => {
   state.search = event.target.value;
+  if (state.search.trim()) state.filtersOpen = false;
   renderAll();
 });
 
@@ -441,8 +471,31 @@ byId("timeSlider").addEventListener("input", (event) => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  window.addEventListener("load", async () => {
+    let refreshing = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    try {
+      const registration = await navigator.serviceWorker.register("./service-worker.js");
+      await registration.update();
+
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        if (!worker) return;
+        worker.addEventListener("statechange", () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) {
+            worker.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      });
+    } catch {
+      // Приложение остается рабочим даже без service worker.
+    }
   });
 }
 

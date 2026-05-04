@@ -98,7 +98,7 @@ a:focus-visible {
 }
 
 main {
-  width: min(100%, 540px);
+  width: min(100%, 720px);
   margin: 0 auto;
 }
 
@@ -244,11 +244,15 @@ main > * {
 
 .filter-card {
   display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3);
   margin-bottom: var(--space-4);
   background: rgba(255, 255, 255, 0.035);
   box-shadow: none;
+}
+
+.is-searching .filter-card {
+  margin-bottom: var(--space-2);
 }
 
 .filter-group {
@@ -267,6 +271,12 @@ main > * {
   gap: var(--space-2);
 }
 
+.search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
 .search-wrap label,
 .time-scrubber label {
   color: var(--muted);
@@ -282,6 +292,36 @@ main > * {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
   padding: 0 var(--space-4);
+}
+
+.filter-toggle {
+  min-height: 3.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 900;
+}
+
+.filter-toggle.has-active {
+  color: #15150d;
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.result-summary {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.filter-drawer {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
 }
 
 .segmented {
@@ -324,7 +364,7 @@ main > * {
   flex-wrap: wrap;
   gap: var(--space-2);
   overflow: visible;
-  padding: var(--space-4) 0 0;
+  padding: 0;
 }
 
 .chip {
@@ -466,6 +506,10 @@ main > * {
   color: var(--muted);
   font-size: var(--text-sm);
   font-weight: 700;
+}
+
+.is-searching .schedule-panel .day-title {
+  display: none;
 }
 
 .notice-panel {
