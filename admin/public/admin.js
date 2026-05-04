@@ -19,17 +19,25 @@ function validateSchedule(data) {
   if (!Array.isArray(data.stages)) throw new Error("Нет stages[]");
   if (!Array.isArray(data.days)) throw new Error("Нет days[]");
   if (!Array.isArray(data.events)) throw new Error("Нет events[]");
+  const ids = new Set();
+  data.events.forEach((event, index) => {
+    if (!event.id || typeof event.id !== "string") throw new Error(`Событие #${index + 1}: нет id`);
+    if (ids.has(event.id)) throw new Error(`Дублирующийся id события: ${event.id}`);
+    ids.add(event.id);
+  });
 }
 
 function normalizeSchedule(data) {
-  validateSchedule(data);
   data.meta.schemaVersion = Number(data.meta.schemaVersion || 1);
-  data.events = data.events.map((event) => ({
+  data.events = data.events.map((event, index) => ({
+    id: event.id || legacyEventId(event, index),
     day: event.day,
     stage: event.stage,
     time: event.time,
     title: event.title,
   }));
+  ensureUniqueEventIds(data.events);
+  validateSchedule(data);
   return data;
 }
 
@@ -73,6 +81,29 @@ function sortMinutes(time) {
   const [hours, minutes] = time.split(":").map(Number);
   const total = hours * 60 + minutes;
   return total < 8 * 60 ? total + 24 * 60 : total;
+}
+
+function legacyEventId(event, index) {
+  return `${event.day}-${event.stage}-${event.time}-${index}`;
+}
+
+function generateEventId() {
+  const existing = new Set(schedule.events.map((event) => event.id));
+  let id = "";
+  do {
+    id = `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  } while (existing.has(id));
+  return id;
+}
+
+function ensureUniqueEventIds(events) {
+  const seen = new Set();
+  events.forEach((event) => {
+    if (!event.id || seen.has(event.id)) {
+      event.id = `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    seen.add(event.id);
+  });
 }
 
 function render() {
@@ -174,6 +205,7 @@ function escapeHtml(value) {
 
 function addEvent() {
   schedule.events.push({
+    id: generateEventId(),
     day: schedule.days[0]?.id || "",
     stage: schedule.stages[0]?.id || "",
     time: "12:00",

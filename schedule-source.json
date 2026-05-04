@@ -1,5 +1,5 @@
 {
-  "primaryScheduleUrl": "uletay.ivahaev.ru:8080/schedule.json",
+  "primaryScheduleUrl": "",
   "fallbackScheduleUrl": "./schedule.json",
   "timeoutMs": 3000
 }

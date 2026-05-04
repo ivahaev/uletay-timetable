@@ -1,4 +1,4 @@
-const APP_VERSION = "v16";
+const APP_VERSION = "v18";
 const DATA_VERSION = "Черновик по афише · Улетай 2026";
 const USER_CACHE_NAME = "yletai-user-data-v1";
 const PLAN_CACHE_URL = "./user-plan.json";
@@ -26,12 +26,13 @@ const state = {
   planStorageStatus: "Загружаем…",
 };
 
-function buildEvents(rawEvents) {
-  return rawEvents.map(([day, stage, time, title], index) => {
+function buildEvents(scheduleEvents) {
+  return scheduleEvents.map((event, index) => {
+    const { day, stage, time, title } = event;
     const dayIndex = DAYS.findIndex((d) => d.id === day);
     const minutes = toMinutes(time);
     return {
-      id: `${day}-${stage}-${time}-${index}`,
+      id: event.id || `${day}-${stage}-${time}-${index}`,
       day,
       dayIndex,
       stage,
@@ -154,12 +155,13 @@ function applyScheduleData(data, source) {
     loadedUrl: source.url,
   };
   events = buildEvents(
-    (Array.isArray(data.events) ? data.events : []).map((event) => [
-      event.day,
-      event.stage,
-      event.time,
-      event.title,
-    ]),
+    (Array.isArray(data.events) ? data.events : []).map((event, index) => ({
+      id: event.id || `${event.day}-${event.stage}-${event.time}-${index}`,
+      day: event.day,
+      stage: event.stage,
+      time: event.time,
+      title: event.title,
+    })),
   );
 }
 
@@ -186,6 +188,18 @@ function getPlanEvents() {
   return events
     .filter((event) => state.favorites.has(event.id))
     .sort((a, b) => a.dayIndex - b.dayIndex || a.sortMinutes - b.sortMinutes || a.stage.localeCompare(b.stage));
+}
+
+function getEventEndMinutes(event) {
+  const nextOnStage = events
+    .filter((candidate) => candidate.day === event.day && candidate.stage === event.stage && candidate.sortMinutes > event.sortMinutes)
+    .sort((a, b) => a.sortMinutes - b.sortMinutes)[0];
+
+  if (nextOnStage && nextOnStage.sortMinutes - event.sortMinutes <= 4 * 60) {
+    return nextOnStage.sortMinutes;
+  }
+
+  return event.sortMinutes + 90;
 }
 
 function createEventCard(event, compact = false) {
@@ -295,7 +309,128 @@ function renderPlan() {
   const list = byId("planList");
   const selected = getPlanEvents();
   byId("statFavorites").textContent = state.favorites.size;
-  renderEventGroups(list, selected, "План пока пустой. Открой расписание и нажми звёздочки у нужных групп.");
+  renderPlanCalendar(list, selected);
+}
+
+function renderPlanCalendar(list, selected) {
+  if (!selected.length) {
+    list.innerHTML = `<div class="empty-state">План пока пустой. Открой расписание и нажми звёздочки у нужных групп.</div>`;
+    return;
+  }
+
+  const grouped = new Map();
+  selected.forEach((event) => {
+    if (!grouped.has(event.day)) grouped.set(event.day, []);
+    grouped.get(event.day).push(event);
+  });
+
+  list.innerHTML = "";
+  grouped.forEach((dayEvents, dayId) => {
+    const day = dayById(dayId);
+    const slots = layoutCalendarDay(dayEvents.map((event) => ({ event, start: event.sortMinutes, end: getEventEndMinutes(event) })));
+    const dayStart = Math.floor((Math.min(...slots.map((slot) => slot.start)) - 30) / 60) * 60;
+    const dayEnd = Math.ceil((Math.max(...slots.map((slot) => slot.end)) + 30) / 60) * 60;
+    const hours = [];
+    for (let minute = dayStart; minute <= dayEnd; minute += 60) hours.push(minute);
+
+    const block = document.createElement("div");
+    block.className = "calendar-day";
+    block.innerHTML = `
+      <div class="day-title">
+        <h3>${day.label}</h3>
+        <span>${day.weekday} · ${dayEvents.length} в плане</span>
+      </div>
+      <div class="calendar-grid" style="--calendar-minutes: ${dayEnd - dayStart}">
+        <div class="time-axis" aria-hidden="true">
+          ${hours
+            .map(
+              (minute) => `
+                <span class="time-mark" style="--top: ${minute - dayStart}">
+                  ${formatMinutes(minute)}
+                </span>
+              `,
+            )
+            .join("")}
+        </div>
+        <div class="calendar-lane">
+          ${hours
+            .map(
+              (minute) => `
+                <span class="hour-line" style="--top: ${minute - dayStart}" aria-hidden="true"></span>
+              `,
+            )
+            .join("")}
+          ${slots.map((slot) => createCalendarEventHtml(slot, dayStart)).join("")}
+        </div>
+      </div>
+    `;
+    list.appendChild(block);
+  });
+}
+
+function layoutCalendarDay(slots) {
+  const sorted = [...slots].sort((a, b) => a.start - b.start || a.end - b.end || a.event.stage.localeCompare(b.event.stage));
+  const clusters = [];
+  let current = [];
+  let clusterEnd = -Infinity;
+
+  sorted.forEach((slot) => {
+    if (current.length && slot.start >= clusterEnd) {
+      clusters.push(current);
+      current = [];
+      clusterEnd = -Infinity;
+    }
+    current.push(slot);
+    clusterEnd = Math.max(clusterEnd, slot.end);
+  });
+  if (current.length) clusters.push(current);
+
+  return clusters.flatMap((cluster) => {
+    const columns = [];
+    cluster.forEach((slot) => {
+      let column = columns.findIndex((end) => end <= slot.start);
+      if (column === -1) {
+        column = columns.length;
+        columns.push(slot.end);
+      } else {
+        columns[column] = slot.end;
+      }
+      slot.column = column;
+    });
+
+    const columnCount = Math.max(1, columns.length);
+    cluster.forEach((slot) => {
+      slot.columnCount = columnCount;
+    });
+    return cluster;
+  });
+}
+
+function createCalendarEventHtml(slot, dayStart) {
+  const { event } = slot;
+  const stage = stageById(event.stage);
+  const duration = Math.max(30, slot.end - slot.start);
+  const columnGap = slot.columnCount > 1 ? 1.5 : 0;
+  const width = 100 / slot.columnCount;
+  const left = width * slot.column;
+  return `
+    <article
+      class="calendar-event"
+      style="
+        --stage-color: ${stage.color};
+        --top: ${slot.start - dayStart};
+        --duration: ${duration};
+        --left: calc(${left}% + ${columnGap}px);
+        --width: calc(${width}% - ${columnGap * 2}px);
+      "
+      data-testid="calendar-event-${event.id}"
+    >
+      <div class="calendar-event-time">${event.time}–${formatMinutes(slot.end)}</div>
+      <strong>${event.title}</strong>
+      <span>${stage.short}</span>
+      <button class="calendar-remove" type="button" aria-label="Убрать из плана" data-favorite="${event.id}" data-testid="button-plan-remove-${event.id}">×</button>
+    </article>
+  `;
 }
 
 function renderNext() {
@@ -317,11 +452,12 @@ function getConflicts() {
 
   const conflicts = [];
   selected.forEach((event, index) => {
-    const next = selected[index + 1];
-    if (!next || next.day !== event.day) return;
-    if (next.sortMinutes - event.sortMinutes < 45) {
+    selected.slice(index + 1).forEach((next) => {
+      if (next.day !== event.day) return;
+      if (next.sortMinutes >= getEventEndMinutes(event)) return;
+      if (event.sortMinutes >= getEventEndMinutes(next)) return;
       conflicts.push(`${event.time} ${event.title} и ${next.time} ${next.title}`);
-    }
+    });
   });
   return conflicts;
 }

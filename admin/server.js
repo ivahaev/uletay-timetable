@@ -38,8 +38,12 @@ function validateSchedule(data) {
 
   const stageIds = new Set(data.stages.map((stage) => stage.id));
   const dayIds = new Set(data.days.map((day) => day.id));
+  const eventIds = new Set();
 
   data.events.forEach((event, index) => {
+    if (!event.id || typeof event.id !== "string") throw new Error(`Event #${index + 1}: missing id`);
+    if (eventIds.has(event.id)) throw new Error(`Event #${index + 1}: duplicate id "${event.id}"`);
+    eventIds.add(event.id);
     if (!dayIds.has(event.day)) throw new Error(`Event #${index + 1}: unknown day "${event.day}"`);
     if (!stageIds.has(event.stage)) throw new Error(`Event #${index + 1}: unknown stage "${event.stage}"`);
     if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(event.time)) {

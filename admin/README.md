@@ -29,6 +29,12 @@ Public JSON:
 http://your-server:8080/schedule.json
 ```
 
+## Schedule event IDs
+
+Every event in `schedule.json` has a stable `id`. The mobile app stores "Мой план" by this `id`, so editing the artist name, date, time, or stage does not remove the event from a user's plan.
+
+The admin UI generates `id` automatically when you add a new slot and keeps it unchanged when you edit the slot. If you edit JSON manually, keep every event `id` unique and do not rename existing IDs unless you intentionally want to break saved plans for that event.
+
 For HTTPS, put this service behind your existing reverse proxy, Caddy, Traefik, Nginx, or any tunnel. The mobile app should use the HTTPS URL.
 
 ## Connect the mobile app
