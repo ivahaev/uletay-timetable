@@ -1,4 +1,4 @@
-const APP_VERSION = "v20";
+const APP_VERSION = "v21";
 const DATA_VERSION = "Черновик по афише · Улетай 2026";
 const USER_CACHE_NAME = "yletai-user-data-v1";
 const PLAN_CACHE_URL = "./user-plan.json";
@@ -433,7 +433,6 @@ function createCalendarEventHtml(slot, dayStart) {
       <div class="calendar-event-time">${event.time}–${formatMinutes(slot.end)}</div>
       <strong>${event.title}</strong>
       <span>${stage.short}</span>
-      <button class="calendar-remove" type="button" aria-label="Убрать из плана" data-favorite="${event.id}" data-testid="button-plan-remove-${event.id}">×</button>
     </article>
   `;
 }
