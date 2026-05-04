@@ -1,5 +1,6 @@
-const CACHE_NAME = "yletai-2026-prototype-v7";
-const ASSETS = ["./", "./index.html", "./style.css?v=7", "./app.js?v=7", "./manifest.webmanifest", "./icon.svg"];
+const CACHE_NAME = "yletai-2026-prototype-v13";
+const APP_CACHE_PREFIX = "yletai-2026-prototype-";
+const ASSETS = ["./", "./index.html", "./style.css?v=13", "./app.js?v=13", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
@@ -16,7 +17,11 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key.startsWith(APP_CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)),
+        ),
+      )
       .then(() => self.clients.claim())
       .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
       .then((clients) => {

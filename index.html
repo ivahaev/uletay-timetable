@@ -21,7 +21,7 @@
       href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=7" />
+    <link rel="stylesheet" href="./style.css?v=13" />
   </head>
   <body>
     <a class="skip-link" href="#appContent">К приложению</a>
@@ -41,6 +41,7 @@
           <p>
             Расписание, личный план и ближайшие выступления в трех отдельных вкладках.
           </p>
+          <p class="update-status" id="updateStatus" role="status" aria-live="polite">Проверяем обновления…</p>
         </div>
         <div class="stats-grid" aria-label="Сводка расписания">
           <div>
@@ -123,6 +124,59 @@
         </div>
         <div class="compact-list" id="nextList"></div>
       </section>
+
+      <section class="tab-panel info-panel" data-panel="info" aria-labelledby="info-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PWA и офлайн</p>
+            <h2 id="info-title">Инфо</h2>
+          </div>
+          <button class="ghost-button" id="checkUpdateButton" type="button" data-testid="button-check-update">
+            Проверить
+          </button>
+        </div>
+        <div class="info-grid">
+          <section class="info-card" aria-labelledby="plan-storage-title">
+            <h3 id="plan-storage-title">Сохранение плана</h3>
+            <p>
+              Отмеченные выступления сохраняются на этом устройстве и остаются после перезапуска установленного приложения.
+            </p>
+            <div class="info-list">
+              <div>
+                <span>В плане</span>
+                <strong id="planCountInfo" data-testid="text-plan-count-info">0</strong>
+              </div>
+              <div>
+                <span>Статус</span>
+                <strong id="planStorageInfo" data-testid="text-plan-storage-info">Загружаем…</strong>
+              </div>
+              <div>
+                <span>Последнее сохранение</span>
+                <strong id="planSavedAt" data-testid="text-plan-saved-at">Ещё не сохранялся</strong>
+              </div>
+            </div>
+            <button class="ghost-button danger-button" id="clearSavedPlanButton" type="button" data-testid="button-clear-saved-plan">
+              Сбросить сохранённый план
+            </button>
+          </section>
+          <section class="info-card" aria-labelledby="app-version-title">
+            <h3 id="app-version-title">Версия приложения</h3>
+            <p>
+              Приложение само проверяет обновления и перезапускается, когда новая версия готова. Офлайн-кэш расписания и сохранённый план разделены.
+            </p>
+            <div class="info-list">
+              <div>
+                <span>Приложение</span>
+                <strong id="appVersion" data-testid="text-app-version">v13</strong>
+              </div>
+              <div>
+                <span>Данные</span>
+                <strong id="dataVersion" data-testid="text-data-version">Черновик по афише</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
     </main>
 
     <nav class="app-tabs" aria-label="Разделы приложения">
@@ -138,10 +192,14 @@
         <span aria-hidden="true">●</span>
         <strong>Сейчас</strong>
       </button>
+      <button type="button" data-tab="info" data-testid="button-tab-info">
+        <span aria-hidden="true">i</span>
+        <strong>Инфо</strong>
+      </button>
     </nav>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=7" defer></script>
+    <script src="./app.js?v=13" defer></script>
   <script data-pplx-inline-edit>
 (function () {
   if (window === window.top) return;

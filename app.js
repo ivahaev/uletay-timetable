@@ -1,3 +1,8 @@
+const APP_VERSION = "v13";
+const DATA_VERSION = "Черновик по афише · Улетай 2026";
+const USER_CACHE_NAME = "yletai-user-data-v1";
+const PLAN_CACHE_URL = "./user-plan.json";
+
 const STAGES = [
   { id: "main", name: "Сцена РЕН ТВ", short: "РЕН ТВ", color: "#e6e04f" },
   { id: "south", name: "Южная сцена", short: "Южная", color: "#62c7db" },
@@ -145,6 +150,8 @@ const state = {
   time: 19 * 60,
   favorites: new Set(),
   filtersOpen: false,
+  planSavedAt: null,
+  planStorageStatus: "Загружаем…",
 };
 
 const events = RAW_EVENTS.map(([day, stage, time, title], index) => {
@@ -167,6 +174,10 @@ const byId = (id) => document.getElementById(id);
 const stageById = (id) => STAGES.find((stage) => stage.id === id);
 const dayById = (id) => DAYS.find((day) => day.id === id);
 
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual";
+}
+
 function toMinutes(time) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
@@ -177,6 +188,21 @@ function formatMinutes(total) {
   const hours = String(Math.floor(normalized / 60)).padStart(2, "0");
   const minutes = String(normalized % 60).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function formatSavedTime(value) {
+  if (!value) return "Ещё не сохранялся";
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function validFavoriteIds(ids) {
+  const eventIds = new Set(events.map((event) => event.id));
+  return ids.filter((id) => eventIds.has(id));
 }
 
 function getFilteredEvents() {
@@ -353,6 +379,14 @@ function renderConflicts() {
   byId("conflictText").textContent = conflicts.slice(0, 3).join("; ");
 }
 
+function renderInfo() {
+  byId("appVersion").textContent = APP_VERSION;
+  byId("dataVersion").textContent = DATA_VERSION;
+  byId("planCountInfo").textContent = `${state.favorites.size}`;
+  byId("planStorageInfo").textContent = state.planStorageStatus;
+  byId("planSavedAt").textContent = formatSavedTime(state.planSavedAt);
+}
+
 function updateUrl() {
   const params = new URLSearchParams();
   if (state.favorites.size) params.set("plan", [...state.favorites].join(","));
@@ -369,12 +403,83 @@ function readPlanFromUrl() {
   });
 }
 
+async function loadSavedPlan() {
+  try {
+    if ("caches" in window) {
+      const cache = await caches.open(USER_CACHE_NAME);
+      const response = await cache.match(PLAN_CACHE_URL);
+      if (response) {
+        const data = await response.json();
+        validFavoriteIds(Array.isArray(data.favorites) ? data.favorites : []).forEach((id) => state.favorites.add(id));
+        state.planSavedAt = data.updatedAt || null;
+        state.planStorageStatus = "Сохранён на устройстве";
+        updateUrl();
+        return;
+      }
+    }
+  } catch {
+    state.planStorageStatus = "Не удалось прочитать сохранение";
+  }
+
+  readPlanFromUrl();
+  state.planStorageStatus = state.favorites.size ? "Загружен из ссылки" : "Пока пусто";
+}
+
+async function persistPlan() {
+  const updatedAt = new Date().toISOString();
+  const payload = {
+    version: APP_VERSION,
+    updatedAt,
+    favorites: [...state.favorites],
+  };
+
+  try {
+    if (!("caches" in window)) {
+      state.planSavedAt = null;
+      state.planStorageStatus = "Сохранение недоступно";
+      updateUrl();
+      return false;
+    }
+    const cache = await caches.open(USER_CACHE_NAME);
+    await cache.put(
+      PLAN_CACHE_URL,
+      new Response(JSON.stringify(payload), {
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      }),
+    );
+    state.planSavedAt = updatedAt;
+    state.planStorageStatus = "Сохранён на устройстве";
+    updateUrl();
+    return true;
+  } catch {
+    state.planStorageStatus = "Ошибка сохранения";
+    updateUrl();
+    return false;
+  }
+}
+
+async function clearSavedPlan() {
+  state.favorites.clear();
+  state.planSavedAt = null;
+  state.planStorageStatus = "Пока пусто";
+  try {
+    if ("caches" in window) {
+      const cache = await caches.open(USER_CACHE_NAME);
+      await cache.delete(PLAN_CACHE_URL);
+    }
+  } catch {
+    state.planStorageStatus = "Не удалось очистить сохранение";
+  }
+  updateUrl();
+}
+
 function renderAll() {
   renderChips();
   renderSchedule();
   renderPlan();
   renderNext();
   renderConflicts();
+  renderInfo();
   renderTabs();
 }
 
@@ -397,9 +502,36 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 1800);
 }
 
+function setUpdateStatus(message, mode = "checking") {
+  const status = byId("updateStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.remove("is-checking", "is-updating", "is-ready");
+  status.classList.add(`is-${mode}`);
+}
+
 function setTab(tab) {
   state.activeTab = tab;
   renderAll();
+}
+
+async function checkForUpdates() {
+  if (!("serviceWorker" in navigator)) {
+    setUpdateStatus("Офлайн-кэш недоступен", "ready");
+    return;
+  }
+  setUpdateStatus("Проверяем обновления…", "checking");
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      setUpdateStatus("Версия актуальна", "ready");
+      return;
+    }
+    await registration.update();
+    setUpdateStatus("Версия актуальна", "ready");
+  } catch {
+    setUpdateStatus("Проверка недоступна", "ready");
+  }
 }
 
 document.addEventListener("click", async (event) => {
@@ -414,7 +546,7 @@ document.addEventListener("click", async (event) => {
       state.favorites.add(id);
       showToast("Добавлено в план");
     }
-    updateUrl();
+    await persistPlan();
     renderAll();
     return;
   }
@@ -446,8 +578,7 @@ document.addEventListener("click", async (event) => {
   }
 
   if (event.target.closest("#clearButton")) {
-    state.favorites.clear();
-    updateUrl();
+    await clearSavedPlan();
     renderAll();
     showToast("План очищен");
   }
@@ -456,6 +587,17 @@ document.addEventListener("click", async (event) => {
     state.time = 19 * 60;
     byId("timeSlider").value = state.time;
     renderAll();
+  }
+
+  if (event.target.closest("#checkUpdateButton")) {
+    await checkForUpdates();
+    showToast("Проверка обновлений выполнена");
+  }
+
+  if (event.target.closest("#clearSavedPlanButton")) {
+    await clearSavedPlan();
+    renderAll();
+    showToast("Сохранённый план сброшен");
   }
 });
 
@@ -473,31 +615,48 @@ byId("timeSlider").addEventListener("input", (event) => {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     let refreshing = false;
+    setUpdateStatus("Проверяем обновления…", "checking");
 
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (refreshing) return;
       refreshing = true;
-      window.location.reload();
+      setUpdateStatus("Обновлено, перезапускаем…", "updating");
+      showToast("Приложение обновлено");
+      window.setTimeout(() => window.location.reload(), 900);
     });
 
     try {
       const registration = await navigator.serviceWorker.register("./service-worker.js");
       await registration.update();
+      setUpdateStatus("Версия актуальна", "ready");
 
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
         if (!worker) return;
+        setUpdateStatus("Загружаем обновление…", "updating");
         worker.addEventListener("statechange", () => {
           if (worker.state === "installed" && navigator.serviceWorker.controller) {
             worker.postMessage({ type: "SKIP_WAITING" });
+          } else if (worker.state === "activated") {
+            setUpdateStatus("Версия актуальна", "ready");
           }
         });
       });
     } catch {
+      setUpdateStatus("Офлайн-режим", "ready");
       // Приложение остается рабочим даже без service worker.
     }
   });
+} else {
+  setUpdateStatus("Офлайн-кэш недоступен", "ready");
 }
 
-readPlanFromUrl();
-renderAll();
+async function init() {
+  await loadSavedPlan();
+  renderAll();
+  requestAnimationFrame(() => {
+    document.querySelector("main")?.scrollTo({ top: 0, left: 0 });
+  });
+}
+
+init();
