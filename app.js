@@ -140,7 +140,7 @@ const RAW_EVENTS = [
 const state = {
   day: "all",
   stage: "all",
-  view: "all",
+  activeTab: "schedule",
   search: "",
   time: 19 * 60,
   favorites: new Set(),
@@ -183,8 +183,6 @@ function getFilteredEvents() {
   return events
     .filter((event) => state.day === "all" || event.day === state.day)
     .filter((event) => state.stage === "all" || event.stage === state.stage)
-    .filter((event) => state.view !== "favorites" || state.favorites.has(event.id))
-    .filter((event) => state.view !== "now" || event.sortMinutes >= state.time)
     .filter((event) => !query || event.title.toLocaleLowerCase("ru-RU").includes(query))
     .sort((a, b) => a.dayIndex - b.dayIndex || a.sortMinutes - b.sortMinutes || a.stage.localeCompare(b.stage));
 }
@@ -194,10 +192,15 @@ function getNextEvents() {
   return events
     .filter((event) => activeDays.includes(event.day))
     .filter((event) => state.stage === "all" || event.stage === state.stage)
-    .filter((event) => state.view !== "favorites" || state.favorites.has(event.id))
     .filter((event) => event.sortMinutes >= state.time)
     .sort((a, b) => a.dayIndex - b.dayIndex || a.sortMinutes - b.sortMinutes)
     .slice(0, 5);
+}
+
+function getPlanEvents() {
+  return events
+    .filter((event) => state.favorites.has(event.id))
+    .sort((a, b) => a.dayIndex - b.dayIndex || a.sortMinutes - b.sortMinutes || a.stage.localeCompare(b.stage));
 }
 
 function createEventCard(event, compact = false) {
@@ -250,9 +253,12 @@ function renderSchedule() {
   const filtered = getFilteredEvents();
   byId("statEvents").textContent = events.length;
   byId("statFavorites").textContent = state.favorites.size;
+  renderEventGroups(list, filtered, "Ничего не найдено. Попробуй другой день, сцену или запрос.");
+}
 
+function renderEventGroups(list, filtered, emptyMessage) {
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state">Ничего не найдено. Попробуй другой день, сцену или запрос.</div>`;
+    list.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
     return;
   }
 
@@ -276,6 +282,13 @@ function renderSchedule() {
     dayEvents.forEach((event) => block.appendChild(createEventCard(event)));
     list.appendChild(block);
   });
+}
+
+function renderPlan() {
+  const list = byId("planList");
+  const selected = getPlanEvents();
+  byId("statFavorites").textContent = state.favorites.size;
+  renderEventGroups(list, selected, "План пока пустой. Открой расписание и нажми звёздочки у нужных групп.");
 }
 
 function renderNext() {
@@ -336,10 +349,20 @@ function readPlanFromUrl() {
 function renderAll() {
   renderChips();
   renderSchedule();
+  renderPlan();
   renderNext();
   renderConflicts();
-  document.querySelectorAll("[data-view]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.view === state.view);
+  renderTabs();
+}
+
+function renderTabs() {
+  document.querySelectorAll("[data-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.panel !== state.activeTab;
+  });
+  document.querySelectorAll("[data-tab]").forEach((button) => {
+    const active = button.dataset.tab === state.activeTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-current", active ? "page" : "false");
   });
 }
 
@@ -351,10 +374,9 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 1800);
 }
 
-function setView(view) {
-  state.view = view;
+function setTab(tab) {
+  state.activeTab = tab;
   renderAll();
-  if (view === "favorites") byId("schedule").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 document.addEventListener("click", async (event) => {
@@ -388,21 +410,9 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  const viewButton = event.target.closest("[data-view]");
-  if (viewButton) {
-    setView(viewButton.dataset.view);
-    return;
-  }
-
-  const shortcut = event.target.closest("[data-view-shortcut]");
-  if (shortcut) {
-    setView(shortcut.dataset.viewShortcut);
-    return;
-  }
-
-  const jump = event.target.closest("[data-jump]");
-  if (jump) {
-    byId(jump.dataset.jump).scrollIntoView({ behavior: "smooth", block: "start" });
+  const tabButton = event.target.closest("[data-tab]");
+  if (tabButton) {
+    setTab(tabButton.dataset.tab);
     return;
   }
 
@@ -417,26 +427,6 @@ document.addEventListener("click", async (event) => {
     state.time = 19 * 60;
     byId("timeSlider").value = state.time;
     renderAll();
-  }
-
-  if (event.target.closest("#shareButton")) {
-    const shareData = {
-      title: "Улетай 2026 — расписание",
-      text: "Мобильное расписание фестиваля с моим планом.",
-      url: location.href,
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        showToast("Поделиться можно ссылкой из адресной строки");
-      }
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(location.href);
-      showToast("Ссылка скопирована");
-    } else {
-      showToast("Скопируй ссылку из адресной строки");
-    }
   }
 });
 

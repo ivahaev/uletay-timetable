@@ -21,33 +21,25 @@
       href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=2" />
+    <link rel="stylesheet" href="./style.css?v=3" />
   </head>
   <body>
-    <a class="skip-link" href="#schedule">К расписанию</a>
+    <a class="skip-link" href="#appContent">К приложению</a>
 
-    <header class="app-header">
-      <div class="brand">
-        <svg class="brand-mark" viewBox="0 0 48 48" role="img" aria-label="Улетай 2026">
-          <path d="M6 29L36 7 27 24h15L12 43l9-17H6z" fill="currentColor" />
-        </svg>
-        <div>
-          <p class="eyebrow">8–12 июля · Село Лагуново</p>
-          <h1>Улетай 2026</h1>
+    <main id="appContent">
+      <section class="app-hero" aria-labelledby="hero-title">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 48 48" role="img" aria-label="Улетай 2026">
+            <path d="M6 29L36 7 27 24h15L12 43l9-17H6z" fill="currentColor" />
+          </svg>
+          <div>
+            <p class="eyebrow">8–12 июля · Село Лагуново</p>
+            <h1 id="hero-title">Улетай 2026</h1>
+          </div>
         </div>
-      </div>
-      <button class="ghost-button" id="shareButton" type="button" data-testid="button-share">
-        Поделиться
-      </button>
-    </header>
-
-    <main>
-      <section class="hero-panel" aria-labelledby="hero-title">
-        <div>
-          <p class="eyebrow">Прототип для телефона</p>
-          <h2 id="hero-title">Расписание, которое удобно держать в руке</h2>
+        <div class="hero-copy">
           <p>
-            Выбирай день и сцену, добавляй группы в план, смотри пересечения и быстро находи, кто играет следующим.
+            Расписание, личный план и ближайшие выступления в трех отдельных вкладках.
           </p>
         </div>
         <div class="stats-grid" aria-label="Сводка расписания">
@@ -66,32 +58,52 @@
         </div>
       </section>
 
-      <section class="controls-panel" aria-label="Фильтры расписания">
-        <div class="search-wrap">
-          <label for="searchInput">Поиск артиста</label>
-          <input id="searchInput" data-testid="input-search" type="search" placeholder="Например, Алиса или Lumen" />
+      <section class="tab-panel schedule-panel" data-panel="schedule" aria-labelledby="schedule-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Полное расписание</p>
+            <h2 id="schedule-title">Выбери день и сцену</h2>
+          </div>
         </div>
-
-        <div class="segmented" role="tablist" aria-label="Режим просмотра">
-          <button class="is-active" type="button" data-view="all" data-testid="button-view-all">Все</button>
-          <button type="button" data-view="now" data-testid="button-view-now">Сейчас</button>
-          <button type="button" data-view="favorites" data-testid="button-view-favorites">Мой план</button>
+        <div class="filter-card" aria-label="Фильтры расписания">
+          <div class="search-wrap">
+            <label for="searchInput">Поиск артиста</label>
+            <input id="searchInput" data-testid="input-search" type="search" placeholder="Например, Алиса или Lumen" />
+          </div>
+          <div class="filter-group">
+            <span>День</span>
+            <div class="scroll-chips" id="dayFilters" aria-label="Дни фестиваля"></div>
+          </div>
+          <div class="filter-group">
+            <span>Сцена</span>
+            <div class="scroll-chips" id="stageFilters" aria-label="Сцены фестиваля"></div>
+          </div>
         </div>
-
-        <div class="scroll-chips" id="dayFilters" aria-label="Дни фестиваля"></div>
-        <div class="scroll-chips" id="stageFilters" aria-label="Сцены фестиваля"></div>
+        <div class="day-groups" id="scheduleList"></div>
+      </section>
+      
+      <section class="tab-panel plan-panel" data-panel="plan" aria-labelledby="plan-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Избранное</p>
+            <h2 id="plan-title">Мой план</h2>
+          </div>
+          <button class="ghost-button" id="clearButton" type="button" data-testid="button-clear">
+            Очистить план
+          </button>
+        </div>
+        <section class="notice-panel" id="noticePanel" hidden>
+          <strong>Есть пересечения</strong>
+          <p id="conflictText"></p>
+        </section>
+        <div class="day-groups" id="planList"></div>
       </section>
 
-      <section class="notice-panel" id="noticePanel" hidden>
-        <strong>Есть пересечения в плане</strong>
-        <p id="conflictText"></p>
-      </section>
-
-      <section class="now-panel" aria-labelledby="next-title">
+      <section class="tab-panel now-panel" data-panel="now" aria-labelledby="next-title" hidden>
         <div class="section-heading">
           <div>
             <p class="eyebrow">Навигация на месте</p>
-            <h2 id="next-title">Ближайшие выступления</h2>
+            <h2 id="next-title">Что дальше</h2>
           </div>
           <button class="ghost-button" id="resetTimeButton" type="button" data-testid="button-reset-time">
             Сейчас
@@ -103,29 +115,25 @@
         </div>
         <div class="compact-list" id="nextList"></div>
       </section>
-
-      <section class="schedule-panel" id="schedule" aria-labelledby="schedule-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Полное расписание</p>
-            <h2 id="schedule-title">Таймлайн по сценам</h2>
-          </div>
-          <button class="ghost-button" id="clearButton" type="button" data-testid="button-clear">
-            Очистить план
-          </button>
-        </div>
-        <div class="day-groups" id="scheduleList"></div>
-      </section>
     </main>
 
-    <nav class="bottom-nav" aria-label="Быстрая навигация">
-      <button type="button" data-jump="schedule" data-testid="button-nav-schedule">Расписание</button>
-      <button type="button" data-view-shortcut="favorites" data-testid="button-nav-plan">Мой план</button>
-      <button type="button" data-view-shortcut="now" data-testid="button-nav-now">Сейчас</button>
+    <nav class="app-tabs" aria-label="Разделы приложения">
+      <button class="is-active" type="button" data-tab="schedule" data-testid="button-tab-schedule">
+        <span aria-hidden="true">▦</span>
+        <strong>Расписание</strong>
+      </button>
+      <button type="button" data-tab="plan" data-testid="button-tab-plan">
+        <span aria-hidden="true">★</span>
+        <strong>Мой план</strong>
+      </button>
+      <button type="button" data-tab="now" data-testid="button-tab-now">
+        <span aria-hidden="true">●</span>
+        <strong>Сейчас</strong>
+      </button>
     </nav>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=2" defer></script>
+    <script src="./app.js?v=3" defer></script>
   <script data-pplx-inline-edit>
 (function () {
   if (window === window.top) return;
