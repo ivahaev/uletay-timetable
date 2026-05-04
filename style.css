@@ -640,9 +640,11 @@ main > * {
     rgba(255, 255, 255, 0.075);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
   cursor: pointer;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-.calendar-event:focus-visible,
 .event-card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;

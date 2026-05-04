@@ -1,4 +1,4 @@
-const APP_VERSION = "v19";
+const APP_VERSION = "v20";
 const DATA_VERSION = "Черновик по афише · Улетай 2026";
 const USER_CACHE_NAME = "yletai-user-data-v1";
 const PLAN_CACHE_URL = "./user-plan.json";
@@ -420,8 +420,6 @@ function createCalendarEventHtml(slot, dayStart) {
   return `
     <article
       class="calendar-event"
-      role="button"
-      tabindex="0"
       style="
         --stage-color: ${stage.color};
         --top: ${slot.start - dayStart};
@@ -704,12 +702,6 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  const openEvent = event.target.closest("[data-open-event]");
-  if (openEvent) {
-    openEventDetails(openEvent.dataset.openEvent);
-    return;
-  }
-
   if (event.target.closest("[data-close-event]")) {
     closeEventDetails();
     return;
@@ -778,6 +770,38 @@ document.addEventListener("click", async (event) => {
     renderAll();
     showToast("Сохранённый план сброшен");
   }
+});
+
+let calendarPointer = null;
+
+document.addEventListener(
+  "pointerdown",
+  (event) => {
+    const openEvent = event.target.closest?.("[data-open-event]");
+    if (!openEvent || event.target.closest?.("[data-favorite]")) {
+      calendarPointer = null;
+      return;
+    }
+    calendarPointer = {
+      id: openEvent.dataset.openEvent,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  },
+  { passive: true },
+);
+
+document.addEventListener("pointerup", (event) => {
+  if (!calendarPointer) return;
+  const openEvent = event.target.closest?.("[data-open-event]");
+  const moved = Math.hypot(event.clientX - calendarPointer.x, event.clientY - calendarPointer.y) > 10;
+  const sameEvent = openEvent?.dataset.openEvent === calendarPointer.id;
+  const id = calendarPointer.id;
+  calendarPointer = null;
+
+  if (moved || !sameEvent || event.target.closest?.("[data-favorite]")) return;
+  event.preventDefault();
+  openEventDetails(id);
 });
 
 document.addEventListener("keydown", (event) => {

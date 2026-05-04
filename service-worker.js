@@ -1,10 +1,10 @@
-const CACHE_NAME = "yletai-2026-prototype-v19";
+const CACHE_NAME = "yletai-2026-prototype-v20";
 const APP_CACHE_PREFIX = "yletai-2026-prototype-";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=19",
-  "./app.js?v=19",
+  "./style.css?v=20",
+  "./app.js?v=20",
   "./schedule.json",
   "./schedule-source.json",
   "./manifest.webmanifest",
