@@ -1,4 +1,4 @@
-const APP_VERSION = "v18";
+const APP_VERSION = "v19";
 const DATA_VERSION = "Черновик по афише · Улетай 2026";
 const USER_CACHE_NAME = "yletai-user-data-v1";
 const PLAN_CACHE_URL = "./user-plan.json";
@@ -22,6 +22,7 @@ const state = {
   time: 19 * 60,
   favorites: new Set(),
   filtersOpen: false,
+  detailsEventId: null,
   planSavedAt: null,
   planStorageStatus: "Загружаем…",
 };
@@ -208,6 +209,9 @@ function createEventCard(event, compact = false) {
   const article = document.createElement("article");
   article.className = "event-card";
   article.style.setProperty("--stage-color", stage.color);
+  article.tabIndex = 0;
+  article.setAttribute("role", "button");
+  article.dataset.openEvent = event.id;
   article.dataset.testid = `card-event-${event.id}`;
   article.innerHTML = `
     <div class="event-time">${event.time}</div>
@@ -416,6 +420,8 @@ function createCalendarEventHtml(slot, dayStart) {
   return `
     <article
       class="calendar-event"
+      role="button"
+      tabindex="0"
       style="
         --stage-color: ${stage.color};
         --top: ${slot.start - dayStart};
@@ -423,6 +429,7 @@ function createCalendarEventHtml(slot, dayStart) {
         --left: calc(${left}% + ${columnGap}px);
         --width: calc(${width}% - ${columnGap * 2}px);
       "
+      data-open-event="${event.id}"
       data-testid="calendar-event-${event.id}"
     >
       <div class="calendar-event-time">${event.time}–${formatMinutes(slot.end)}</div>
@@ -575,6 +582,7 @@ function renderAll() {
   renderConflicts();
   renderInfo();
   renderTabs();
+  renderEventDetails();
 }
 
 function renderTabs() {
@@ -586,6 +594,51 @@ function renderTabs() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
   });
+}
+
+function renderEventDetails() {
+  const sheet = byId("eventSheet");
+  const event = events.find((candidate) => candidate.id === state.detailsEventId);
+  if (!event) {
+    sheet.hidden = true;
+    document.body.classList.remove("has-event-sheet");
+    return;
+  }
+
+  const stage = stageById(event.stage);
+  const day = dayById(event.day);
+  const endMinutes = getEventEndMinutes(event);
+  const duration = endMinutes - event.sortMinutes;
+  const favorite = state.favorites.has(event.id);
+
+  sheet.hidden = false;
+  document.body.classList.add("has-event-sheet");
+  byId("eventSheetStage").textContent = stage.short;
+  byId("eventSheetTitle").textContent = event.title;
+  byId("eventSheetTime").textContent = `${event.time}–${formatMinutes(endMinutes)} · ${formatDuration(duration)}`;
+  byId("eventSheetDay").textContent = `${day.label}, ${day.weekday}`;
+  byId("eventSheetStageName").textContent = stage.name;
+  const favoriteButton = byId("eventSheetFavorite");
+  favoriteButton.textContent = favorite ? "Убрать из плана" : "Добавить в план";
+  favoriteButton.classList.toggle("is-remove", favorite);
+}
+
+function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} мин`;
+  if (!rest) return `${hours} ч`;
+  return `${hours} ч ${rest} мин`;
+}
+
+function openEventDetails(id) {
+  state.detailsEventId = id;
+  renderEventDetails();
+}
+
+function closeEventDetails() {
+  state.detailsEventId = null;
+  renderEventDetails();
 }
 
 function showToast(message) {
@@ -651,6 +704,32 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const openEvent = event.target.closest("[data-open-event]");
+  if (openEvent) {
+    openEventDetails(openEvent.dataset.openEvent);
+    return;
+  }
+
+  if (event.target.closest("[data-close-event]")) {
+    closeEventDetails();
+    return;
+  }
+
+  if (event.target.closest("[data-sheet-favorite]")) {
+    const id = state.detailsEventId;
+    if (!id) return;
+    if (state.favorites.has(id)) {
+      state.favorites.delete(id);
+      showToast("Убрано из плана");
+    } else {
+      state.favorites.add(id);
+      showToast("Добавлено в план");
+    }
+    await persistPlan();
+    renderAll();
+    return;
+  }
+
   const dayButton = event.target.closest("[data-day]");
   if (dayButton) {
     state.day = dayButton.dataset.day;
@@ -699,6 +778,20 @@ document.addEventListener("click", async (event) => {
     renderAll();
     showToast("Сохранённый план сброшен");
   }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.detailsEventId) {
+    closeEventDetails();
+    return;
+  }
+
+  if (event.key !== "Enter" && event.key !== " ") return;
+  if (event.target.closest?.("[data-favorite], [data-close-event], [data-sheet-favorite]")) return;
+  const openEvent = event.target.closest?.("[data-open-event]");
+  if (!openEvent) return;
+  event.preventDefault();
+  openEventDetails(openEvent.dataset.openEvent);
 });
 
 byId("searchInput").addEventListener("input", (event) => {

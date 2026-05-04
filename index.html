@@ -21,7 +21,7 @@
       href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=18" />
+    <link rel="stylesheet" href="./style.css?v=19" />
   </head>
   <body>
     <a class="skip-link" href="#appContent">К приложению</a>
@@ -179,8 +179,34 @@
       </button>
     </nav>
 
+    <div class="event-sheet" id="eventSheet" hidden>
+      <button class="event-sheet-backdrop" type="button" aria-label="Закрыть подробности" data-close-event></button>
+      <section class="event-sheet-card" role="dialog" aria-modal="true" aria-labelledby="eventSheetTitle">
+        <button class="sheet-close" type="button" aria-label="Закрыть" data-close-event>×</button>
+        <p class="eyebrow" id="eventSheetStage">Сцена</p>
+        <h2 id="eventSheetTitle">Выступление</h2>
+        <div class="sheet-details">
+          <div>
+            <span>Время</span>
+            <strong id="eventSheetTime">—</strong>
+          </div>
+          <div>
+            <span>День</span>
+            <strong id="eventSheetDay">—</strong>
+          </div>
+          <div>
+            <span>Сцена</span>
+            <strong id="eventSheetStageName">—</strong>
+          </div>
+        </div>
+        <button class="primary-sheet-button" id="eventSheetFavorite" type="button" data-sheet-favorite data-testid="button-sheet-favorite">
+          Добавить в план
+        </button>
+      </section>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=18" defer></script>
+    <script src="./app.js?v=19" defer></script>
   <script data-pplx-inline-edit>
 (function () {
   if (window === window.top) return;
