@@ -1,6 +1,15 @@
-const CACHE_NAME = "yletai-2026-prototype-v13";
+const CACHE_NAME = "yletai-2026-prototype-v16";
 const APP_CACHE_PREFIX = "yletai-2026-prototype-";
-const ASSETS = ["./", "./index.html", "./style.css?v=13", "./app.js?v=13", "./manifest.webmanifest", "./icon.svg"];
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./style.css?v=16",
+  "./app.js?v=16",
+  "./schedule.json",
+  "./schedule-source.json",
+  "./manifest.webmanifest",
+  "./icon.svg",
+];
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {

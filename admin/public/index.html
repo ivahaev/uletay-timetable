@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Улетай 2026 · админка расписания</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Улетай 2026</p>
+          <h1>Админка расписания</h1>
+          <p>Редактирует серверный <code>schedule.json</code>, который приложение пробует загрузить перед GitHub Pages fallback.</p>
+        </div>
+        <div class="status" id="status">Загрузка…</div>
+      </header>
+
+      <section class="panel auth-panel">
+        <label>
+          Admin token
+          <input id="tokenInput" type="password" placeholder="Если ADMIN_TOKEN задан на сервере" />
+        </label>
+        <div class="actions">
+          <button id="loadButton" type="button">Загрузить</button>
+          <button id="saveButton" type="button" class="primary">Сохранить на сервер</button>
+          <button id="downloadButton" type="button">Скачать JSON</button>
+          <label class="file-button">
+            Импорт JSON
+            <input id="importInput" type="file" accept="application/json" />
+          </label>
+        </div>
+      </section>
+
+      <section class="panel meta-panel">
+        <h2>Метаданные</h2>
+        <div class="meta-grid">
+          <label>Фестиваль <input data-meta="festival" /></label>
+          <label>Даты <input data-meta="dates" /></label>
+          <label>Место <input data-meta="location" /></label>
+          <label>Источник <input data-meta="source" /></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Выступления</h2>
+            <p id="summary">0 событий</p>
+          </div>
+          <button id="addEventButton" type="button">Добавить слот</button>
+        </div>
+        <div class="filters">
+          <label>День <select id="dayFilter"></select></label>
+          <label>Сцена <select id="stageFilter"></select></label>
+          <label>Поиск <input id="searchInput" type="search" placeholder="Артист" /></label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>День</th>
+                <th>Сцена</th>
+                <th>Время</th>
+                <th>Артист</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel advanced-panel">
+        <details>
+          <summary>Сцены и дни</summary>
+          <p>Если меняешь ID сцены или дня, проверь события: они ссылаются на эти ID.</p>
+          <div class="json-editors">
+            <label>Сцены <textarea id="stagesJson" spellcheck="false"></textarea></label>
+            <label>Дни <textarea id="daysJson" spellcheck="false"></textarea></label>
+          </div>
+          <button id="applyJsonButton" type="button">Применить сцены и дни</button>
+        </details>
+      </section>
+    </main>
+
+    <script src="./admin.js" defer></script>
+  </body>
+</html>

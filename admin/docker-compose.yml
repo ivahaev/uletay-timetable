@@ -1,0 +1,13 @@
+services:
+  schedule-admin:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SCHEDULE_FILE=/data/schedule.json
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    volumes:
+      - ./data:/data

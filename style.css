@@ -255,6 +255,10 @@ main > * {
   background: var(--success);
 }
 
+.update-status.is-hidden {
+  display: none;
+}
+
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(230, 224, 79, 0.42);
